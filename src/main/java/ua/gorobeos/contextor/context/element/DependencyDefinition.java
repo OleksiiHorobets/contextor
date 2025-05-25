@@ -1,5 +1,19 @@
 package ua.gorobeos.contextor.context.element;
 
-public record DependencyDefinition(String qualifier, String name, Class<?> clazz) {
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+public class DependencyDefinition {
+
+  String name;
+  String qualifier;
+  Class<?> clazz;
 }

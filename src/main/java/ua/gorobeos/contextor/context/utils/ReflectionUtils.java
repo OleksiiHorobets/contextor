@@ -1,6 +1,9 @@
 package ua.gorobeos.contextor.context.utils;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Parameter;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
@@ -10,6 +13,8 @@ import javax.annotation.Nonnull;
 import lombok.experimental.UtilityClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ua.gorobeos.contextor.context.annotations.Qualifier;
+import ua.gorobeos.contextor.context.element.DependencyDefinition;
 
 @UtilityClass
 public class ReflectionUtils {
@@ -47,6 +52,31 @@ public class ReflectionUtils {
     return getSingleAnnotationFromClass(targetClazz, annotation)
         .map(an -> extractValue(an, fieldName))
         .map(val -> castToType(val, type));
+  }
+
+  public static Collection<DependencyDefinition> mapParametersToDependencyDefinitions(Parameter[] parameters) {
+    if (parameters == null || parameters.length == 0) {
+      return Collections.emptyList();
+    }
+    return Arrays.stream(parameters)
+        .map(ReflectionUtils::mapParameterToDependencyDefinition)
+        .toList();
+  }
+
+  private static DependencyDefinition mapParameterToDependencyDefinition(Parameter param) {
+    Class<?> paramType = param.getType();
+    String paramName = param.getName();
+    String qualifier = Optional.ofNullable(param.getAnnotation(Qualifier.class))
+        .map(Qualifier::value)
+        .orElse(null);
+
+    log.debug("Mapping parameter to DependencyDefinition: type={}, name={}, qualifier={}",
+        paramType.getName(), paramName, qualifier);
+    return DependencyDefinition.builder()
+        .name(paramName)
+        .qualifier(qualifier)
+        .clazz(paramType)
+        .build();
   }
 
   private static <T> T castToType(Object o, Class<T> targetType) {
