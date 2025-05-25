@@ -1,5 +1,7 @@
 package ua.gorobeos.contextor.context.storage;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import lombok.AccessLevel;
@@ -15,7 +17,8 @@ public class DefaultElementDefinitionHolder implements ElementDefinitionHolder {
   ConcurrentMap<String, ElementDefinition> elementDefinitionMap = new ConcurrentHashMap<>();
 
   @Override
-  public void addElementDefinition(String elementName, ElementDefinition elementDefinition) {
+  public void addElementDefinition(ElementDefinition elementDefinition) {
+    String elementName = elementDefinition.getName();
     if (elementDefinitionMap.containsKey(elementName)) {
       log.error("Conflict detected: Element definition for '{}' already exists. [{}]", elementName, elementDefinitionMap.get(elementName));
       throw new ElementNameConflictException("Element definition with name '%s' already exists".formatted(elementName));
@@ -31,6 +34,11 @@ public class DefaultElementDefinitionHolder implements ElementDefinitionHolder {
       return null;
     }
     return elementDefinitionMap.get(elementName);
+  }
+
+  @Override
+  public Collection<ElementDefinition> getElementDefinitions() {
+    return List.copyOf(elementDefinitionMap.values());
   }
 
 

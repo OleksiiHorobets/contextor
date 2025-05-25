@@ -1,18 +1,16 @@
 package ua.gorobeos.contextor.context.readers;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import ua.gorobeos.contextor.context.annotations.Primary;
 import ua.gorobeos.contextor.context.annotations.Scope;
 import ua.gorobeos.contextor.context.element.AnnotationElementDefinition;
 import ua.gorobeos.contextor.context.element.ElementDefinition;
-import ua.gorobeos.contextor.context.storage.ElementDefinitionHolder;
 import ua.gorobeos.contextor.context.utils.ReflectionUtils;
 
 @Slf4j
-public class AnnotatedElementDefinitionReader extends ElementDefinitionReader {
+public class AnnotatedBaseElementDefinitionReader extends BaseElementDefinitionReader {
 
-  public AnnotatedElementDefinitionReader(ElementDefinitionHolder elementDefinitionHolder) {
-    super(elementDefinitionHolder);
-  }
 
   @Override
   public String resolveScope(Class<?> clazz) {
@@ -32,16 +30,28 @@ public class AnnotatedElementDefinitionReader extends ElementDefinitionReader {
   }
 
   @Override
-  public ElementDefinition getElementDefinitionContainer() {
+  public ElementDefinition readElementDefinition(Class<?> clazz) {
+    var elementDefinition = super.readElementDefinition(clazz);
+    elementDefinition.setIsPrimary(resolveIfIsPrimary(clazz));
+    log.debug("Element definition created: {}", elementDefinition);
+    return elementDefinition;
+  }
+
+  @Override
+  public ElementDefinition getElementDefinitionContainerWithSpecifics() {
     return new AnnotationElementDefinition();
   }
 
   private String resolveNameFromAnnotations(Class<?> clazz) {
     return ReflectionUtils.getValueFromAnnotation(clazz, ua.gorobeos.contextor.context.annotations.Element.class, "value", String.class)
+        .filter(StringUtils::isNotBlank)
         .orElseGet(() -> {
           log.debug("No specific name in @Element annotation found on class: {}", clazz.getName());
           return getDefaultElementName(clazz);
         });
   }
 
+  private boolean resolveIfIsPrimary(Class<?> clazz) {
+    return ReflectionUtils.isAnnotationPresentFullCheck(clazz, Primary.class);
+  }
 }

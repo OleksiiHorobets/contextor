@@ -19,6 +19,7 @@ public abstract class ElementDefinition {
   public static final String PROTOTYPE_SCOPE = "prototype";
 
   protected String name;
+  protected Boolean isPrimary;
   protected Class<?> type;
   protected Constructor<?> initConstructor;
   protected String scope;

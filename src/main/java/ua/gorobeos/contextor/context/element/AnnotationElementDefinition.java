@@ -9,9 +9,8 @@ import lombok.NoArgsConstructor;
 public class AnnotationElementDefinition extends ElementDefinition {
 
   @Builder
-  public AnnotationElementDefinition(String name, Class<?> type, Constructor<?> initConstructor, String scope,
+  public AnnotationElementDefinition(String name, Boolean isPrimary, Class<?> type, Constructor<?> initConstructor, String scope,
       Collection<DependencyDefinition> dependencies) {
-    super(name, type, initConstructor, scope, dependencies);
+    super(name, isPrimary, type, initConstructor, scope, dependencies);
   }
-
 }

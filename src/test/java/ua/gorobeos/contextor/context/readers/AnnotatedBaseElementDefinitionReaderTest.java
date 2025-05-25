@@ -2,8 +2,10 @@ package ua.gorobeos.contextor.context.readers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static ua.gorobeos.contextor.context.element.ElementDefinition.PROTOTYPE_SCOPE;
+import static ua.gorobeos.contextor.context.element.ElementDefinition.SINGLETON_SCOPE;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ua.gorobeos.contextor.context.annotations.Element;
 import ua.gorobeos.contextor.context.annotations.Injected;
+import ua.gorobeos.contextor.context.annotations.Primary;
 import ua.gorobeos.contextor.context.annotations.Qualifier;
 import ua.gorobeos.contextor.context.annotations.Scope;
 import ua.gorobeos.contextor.context.element.DependencyDefinition;
@@ -23,13 +26,12 @@ import ua.gorobeos.contextor.context.storage.ElementDefinitionHolder;
 
 
 @ExtendWith(MockitoExtension.class)
-class AnnotatedElementDefinitionReaderTest {
+class AnnotatedBaseElementDefinitionReaderTest {
 
   @InjectMocks
-  AnnotatedElementDefinitionReader reader;
+  AnnotatedBaseElementDefinitionReader reader;
   @Mock
   ElementDefinitionHolder elementDefinitionHolder;
-
 
   @Nested
   @DisplayName("Element Scope Resolver Tests")
@@ -87,6 +89,7 @@ class AnnotatedElementDefinitionReaderTest {
 
     }
 
+    @Element
     private static class UnnamedClass {
 
     }
@@ -108,7 +111,7 @@ class AnnotatedElementDefinitionReaderTest {
       assertThatThrownBy(() -> reader.resolveElementInitConstructor(MultipleNotAnnotatedConstructorsClass.class))
           .isInstanceOf(MultipleConstructorCandidatesException.class)
           .hasMessageContaining(
-              "Could not resolve multiple non-annotated constructors for class: ua.gorobeos.contextor.context.readers.AnnotatedElementDefinitionReaderTest$ResolveElementsConstructor$MultipleNotAnnotatedConstructorsClass");
+              "Could not resolve multiple non-annotated constructors for class: ");
     }
 
     @Test
@@ -130,7 +133,7 @@ class AnnotatedElementDefinitionReaderTest {
       assertThatThrownBy(() -> reader.resolveElementInitConstructor(MultipleInjectedConstructors.class))
           .isInstanceOf(MultipleConstructorCandidatesException.class)
           .hasMessageContaining(
-              "Multiple @Injected constructors found for class: ua.gorobeos.contextor.context.readers.AnnotatedElementDefinitionReaderTest$ResolveElementsConstructor$MultipleInjectedConstructors");
+              "Multiple @Injected constructors found for class: ");
     }
 
     private static class SingleConstructorClass {
@@ -251,5 +254,51 @@ class AnnotatedElementDefinitionReaderTest {
     }
 
 
+  }
+
+  @Nested
+  @DisplayName("Complete Element Definition Test")
+  class FullElementDefinitionTest {
+
+    @Test
+    void shouldCreateElementDefinitionCorrectly() {
+      var elementDefinition = reader.readElementDefinition(TestElement.class);
+
+      assertThat(elementDefinition).isNotNull();
+      assertAll(
+          () -> assertThat(elementDefinition.getName()).isEqualTo("specifiedName"),
+          () -> assertThat(elementDefinition.getType()).isEqualTo(TestElement.class),
+          () -> assertThat(elementDefinition.getScope()).isEqualTo(SINGLETON_SCOPE),
+          () -> assertThat(elementDefinition.getIsPrimary()).isTrue(),
+          () -> assertThat(elementDefinition.getInitConstructor())
+              .isEqualTo(TestElement.class.getDeclaredConstructors()[1])
+      );
+
+      var dependencies = elementDefinition.getDependencies();
+      assertThat(dependencies).hasSize(2)
+          .containsExactlyInAnyOrder(
+              DependencyDefinition.builder()
+                  .name("strParam")
+                  .qualifier("specifiedStrParam")
+                  .clazz(String.class)
+                  .build(),
+              DependencyDefinition.builder()
+                  .name("value")
+                  .clazz(Integer.class)
+                  .build()
+          );
+    }
+
+    @Element("specifiedName")
+    @Primary
+    private static class TestElement {
+
+      public TestElement(String strPram) {
+      }
+
+      @Injected
+      public TestElement(@Qualifier("specifiedStrParam") String strParam, Integer value) {
+      }
+    }
   }
 }
