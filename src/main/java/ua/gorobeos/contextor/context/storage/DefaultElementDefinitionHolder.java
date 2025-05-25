@@ -2,8 +2,10 @@ package ua.gorobeos.contextor.context.storage;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -28,17 +30,25 @@ public class DefaultElementDefinitionHolder implements ElementDefinitionHolder {
   }
 
   @Override
-  public ElementDefinition getElementDefinition(String elementName) {
+  public Optional<ElementDefinition> getElementDefinition(String elementName) {
     if (!elementDefinitionMap.containsKey(elementName)) {
-      log.error("Element definition for '{}' not found.", elementName);
-      return null;
+      log.warn("Element definition for '{}' not found.", elementName);
+      return Optional.empty();
     }
-    return elementDefinitionMap.get(elementName);
+    return Optional.of(elementDefinitionMap.get(elementName));
   }
 
   @Override
   public Collection<ElementDefinition> getElementDefinitions() {
     return List.copyOf(elementDefinitionMap.values());
+  }
+
+  @Override
+  public Collection<ElementDefinition> getElementDefinitionsByType(Class<?> type) {
+    log.debug("Retrieving element definitions by type: {}", type.getName());
+    return elementDefinitionMap.values().stream()
+        .filter(elementDefinition -> type.isAssignableFrom(elementDefinition.getType()))
+        .collect(Collectors.toSet());
   }
 
 

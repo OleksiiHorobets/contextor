@@ -10,6 +10,7 @@ class ContextHolderTest {
     var context = ContextHolder.initializeContext(ContextMainClass.class);
 
     context.getElementDefinitionHolder().getElementDefinitions();
+    context.getElement("aFirst");
   }
 
   @ElementScan(
