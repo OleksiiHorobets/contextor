@@ -3,14 +3,10 @@ package ua.gorobeos.contextor.context.element;
 
 import java.lang.reflect.Constructor;
 import java.util.Collection;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
 
 
 @Getter

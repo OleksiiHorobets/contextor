@@ -36,7 +36,8 @@ class ClasspathElementScannerTest {
     assertThatThrownBy(
         () -> ClasspathElementScanner.scanPackages(InitClassWithoutPackages.class)
     ).isInstanceOf(ContainerInitException.class)
-        .hasMessageContaining("No base packages specified in ElementScan annotation on class: ua.gorobeos.contextor.context.scanner.ClasspathElementScannerTest$InitClassWithoutPackages");
+        .hasMessageContaining(
+            "No base packages specified in ElementScan annotation on class: ua.gorobeos.contextor.context.scanner.ClasspathElementScannerTest$InitClassWithoutPackages");
   }
 
   @Test
@@ -58,9 +59,11 @@ class ClasspathElementScannerTest {
 
   @ElementScan(basePackages = {})
   class InitClassWithoutPackages {
+
   }
 
   @ElementScan(basePackages = {"123+--", "123"})
   class InvalidPackagesInitClass {
+
   }
 }

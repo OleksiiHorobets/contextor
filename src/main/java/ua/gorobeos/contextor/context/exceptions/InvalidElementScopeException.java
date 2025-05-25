@@ -1,6 +1,6 @@
 package ua.gorobeos.contextor.context.exceptions;
 
-public class InvalidElementScopeException extends RuntimeException{
+public class InvalidElementScopeException extends RuntimeException {
 
   public InvalidElementScopeException(String message) {
     super(message);

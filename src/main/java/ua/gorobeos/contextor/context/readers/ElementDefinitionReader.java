@@ -18,6 +18,7 @@ import ua.gorobeos.contextor.context.storage.ElementDefinitionHolder;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PROTECTED)
 @RequiredArgsConstructor
 public abstract class ElementDefinitionReader {
+
   protected static final Set<String> VALID_SCOPES = Set.of(SINGLETON_SCOPE, PROTOTYPE_SCOPE);
 
   ElementDefinitionHolder elementDefinitionHolder;
