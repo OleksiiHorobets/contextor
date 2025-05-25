@@ -14,7 +14,6 @@ public class DefaultElementDefinitionHolder implements ElementDefinitionHolder {
 
   ConcurrentMap<String, ElementDefinition> elementDefinitionMap = new ConcurrentHashMap<>();
 
-
   @Override
   public void addElementDefinition(String elementName, ElementDefinition elementDefinition) {
     if (elementDefinitionMap.containsKey(elementName)) {
