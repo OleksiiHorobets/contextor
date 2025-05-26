@@ -1,9 +1,7 @@
 package ua.gorobeos.contextor.context.storage;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -11,9 +9,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import ua.gorobeos.contextor.context.element.DependencyDefinition;
+import ua.gorobeos.contextor.context.dependencies.DependencyResolver;
+import ua.gorobeos.contextor.context.dependencies.SimpleDependencyResolver;
 import ua.gorobeos.contextor.context.element.ElementDefinition;
-import ua.gorobeos.contextor.context.exceptions.UnresolvableDependencyException;
 import ua.gorobeos.contextor.context.readers.ElementDefinitionReaderFacade;
 import ua.gorobeos.contextor.context.readers.ElementDefinitionReaderFacadeImpl;
 import ua.gorobeos.contextor.context.scanner.ClasspathElementScanner;
@@ -27,6 +25,7 @@ public class ContextHolder {
   Map<String, Object> nameToElementMap = new ConcurrentHashMap<>();
   ElementDefinitionHolder elementDefinitionHolder;
   ElementDefinitionReaderFacade elementDefinitionReaderFacade;
+  DependencyResolver dependencyResolver;
 
   public static ContextHolder initializeContext(Class<?> initClazz) {
     log.info("Initializing context with class: {}", initClazz.getName());
@@ -36,12 +35,13 @@ public class ContextHolder {
 
     ElementDefinitionHolder elementDefinitionHolder = new DefaultElementDefinitionHolder();
     ElementDefinitionReaderFacade elementDefinitionReaderFacade = new ElementDefinitionReaderFacadeImpl(elementDefinitionHolder);
+    DependencyResolver dependencyResolver = new SimpleDependencyResolver(elementDefinitionHolder);
 
     classesFound.stream()
         .forEach(elementDefinitionReaderFacade::addElementDefinition);
     log.info("Context initialized with {} element definitions", elementDefinitionHolder.getElementDefinitions().size());
 
-    ContextHolder contextHolder = new ContextHolder(elementDefinitionHolder, elementDefinitionReaderFacade);
+    ContextHolder contextHolder = new ContextHolder(elementDefinitionHolder, elementDefinitionReaderFacade, dependencyResolver);
 
     elementDefinitionHolder.getElementDefinitions()
         .stream()
@@ -73,7 +73,7 @@ public class ContextHolder {
   private Object createElementInstance(ElementDefinition elementDefinition) {
     var dependenciesDefinitions = elementDefinition.getDependencies()
         .stream()
-        .map(this::retrieveDependency)
+        .map(dependencyResolver::retrieveDependency)
         .map(ElementDefinition::getName)
         .map(this::getElement)
         .toArray();
@@ -85,62 +85,11 @@ public class ContextHolder {
     var createdElement = initConstructor.newInstance(dependenciesDefinitions);
 
     log.info("Element '{}' created successfully with dependencies: {}", elementDefinition.getName(), dependenciesDefinitions);
-    if (!elementDefinition.getIsPrimary()) {
+    if (Boolean.FALSE.equals(elementDefinition.getIsPrimary())) {
       return nameToElementMap.put(elementDefinition.getName(), createdElement);
     }
     return createdElement;
   }
 
 
-  private ElementDefinition retrieveDependency(DependencyDefinition definition) {
-    log.trace("Retrieving dependency definition: {}", definition);
-    ElementDefinition elementDefinition = Optional.ofNullable(definition.getQualifier())
-        .map(elementDefinitionHolder::getElementDefinition)
-        .orElseGet(() -> elementDefinitionHolder.getElementDefinition(definition.getName()))
-        .orElseGet(() -> getDependencyDefinitionForClass(definition.getClazz()));
-
-    if (!definition.getClazz().isAssignableFrom(definition.getClazz())) {
-      log.error("Dependency '%s' cannot be resolved. Element definition '%s' is not assignable to '%s'.",
-          definition.getName(), elementDefinition.getName(), definition.getClazz().getName());
-      throw new UnresolvableDependencyException(
-          "Dependency '%s' cannot be resolved. Element definition '%s' is not assignable to '%s'.".formatted(
-              definition.getName(), elementDefinition.getName(), definition.getClazz().getName()));
-    }
-    log.trace("Dependency definition retrieved: {}", elementDefinition);
-    return elementDefinition;
-  }
-
-
-  private ElementDefinition getDependencyDefinitionForClass(Class<?> dependencyClass) {
-    log.trace("Retrieving dependency definition for class: {}", dependencyClass.getName());
-    Collection<ElementDefinition> compatibleElements = elementDefinitionHolder.getElementDefinitionsByType(dependencyClass);
-
-    if (compatibleElements.isEmpty()) {
-      log.error("No element definition found for class: {}", dependencyClass.getName());
-      throw new UnresolvableDependencyException(
-          "No element definition found for class '%s'".formatted(dependencyClass.getName()));
-    }
-    if (compatibleElements.size() == 1) {
-      log.debug("Single compatible element found for class: {}", dependencyClass.getName());
-      return compatibleElements.iterator().next();
-    }
-
-    var primaryElements = compatibleElements.stream()
-        .filter(ElementDefinition::getIsPrimary)
-        .toList();
-
-    if (primaryElements.size() > 1) {
-      log.error("Multiple primary elements found for class: {}", dependencyClass.getName());
-      throw new UnresolvableDependencyException(
-          "Multiple primary elements found for class '%s'".formatted(dependencyClass.getName()));
-    }
-    if (primaryElements.size() == 1) {
-      log.debug("Primary element found for class: {}", dependencyClass.getName());
-      return primaryElements.get(0);
-    }
-
-    log.error("Multiple compatible elements found for class: {}", dependencyClass.getName());
-    throw new UnresolvableDependencyException(
-        "Multiple compatible elements found for class '%s'. Please specify a primary element.".formatted(dependencyClass.getName()));
-  }
 }

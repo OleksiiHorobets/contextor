@@ -1,4 +1,4 @@
-package ua.gorobeos.contextor.context.element;
+package ua.gorobeos.contextor.context.dependencies;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

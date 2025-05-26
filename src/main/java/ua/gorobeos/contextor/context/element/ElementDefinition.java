@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import ua.gorobeos.contextor.context.dependencies.DependencyDefinition;
 
 
 @Getter

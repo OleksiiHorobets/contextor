@@ -14,7 +14,7 @@ import lombok.experimental.UtilityClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ua.gorobeos.contextor.context.annotations.Qualifier;
-import ua.gorobeos.contextor.context.element.DependencyDefinition;
+import ua.gorobeos.contextor.context.dependencies.DependencyDefinition;
 
 @UtilityClass
 public class ReflectionUtils {

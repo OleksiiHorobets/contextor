@@ -19,7 +19,7 @@ import ua.gorobeos.contextor.context.annotations.Injected;
 import ua.gorobeos.contextor.context.annotations.Primary;
 import ua.gorobeos.contextor.context.annotations.Qualifier;
 import ua.gorobeos.contextor.context.annotations.Scope;
-import ua.gorobeos.contextor.context.element.DependencyDefinition;
+import ua.gorobeos.contextor.context.dependencies.DependencyDefinition;
 import ua.gorobeos.contextor.context.exceptions.InvalidElementScopeException;
 import ua.gorobeos.contextor.context.exceptions.MultipleConstructorCandidatesException;
 import ua.gorobeos.contextor.context.storage.ElementDefinitionHolder;

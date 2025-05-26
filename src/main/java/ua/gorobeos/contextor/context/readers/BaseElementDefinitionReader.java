@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import ua.gorobeos.contextor.context.annotations.Injected;
-import ua.gorobeos.contextor.context.element.DependencyDefinition;
+import ua.gorobeos.contextor.context.dependencies.DependencyDefinition;
 import ua.gorobeos.contextor.context.element.ElementDefinition;
 import ua.gorobeos.contextor.context.exceptions.ElementDefinitionCreationException;
 import ua.gorobeos.contextor.context.exceptions.InvalidElementScopeException;
