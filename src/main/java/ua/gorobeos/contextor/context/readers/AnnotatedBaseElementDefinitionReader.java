@@ -38,7 +38,7 @@ public class AnnotatedBaseElementDefinitionReader extends BaseElementDefinitionR
   }
 
   @Override
-  public ElementDefinition getElementDefinitionContainerWithSpecifics() {
+  public ElementDefinition getElementDefinitionContainerWithSpecifics(Class<?> clazz) {
     return new AnnotationElementDefinition();
   }
 

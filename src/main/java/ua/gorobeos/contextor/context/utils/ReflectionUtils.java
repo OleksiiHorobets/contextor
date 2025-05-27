@@ -1,6 +1,7 @@
 package ua.gorobeos.contextor.context.utils;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,11 +23,18 @@ public class ReflectionUtils {
   private static final Logger log = LoggerFactory.getLogger(ReflectionUtils.class);
 
   public static boolean isAnnotationPresentFullCheck(Class<?> clazz, Class<? extends Annotation> targerAnnotation) {
-    return getAnnotationsFromClass(clazz)
+    return getAnnotationsFromClassFullCheck(clazz)
         .stream()
         .anyMatch(annotation -> annotation.equals(targerAnnotation));
   }
 
+  public static Set<Class<? extends Annotation>> getAnnotationsFromClassFullCheck(@Nonnull Class<?> targetClazz) {
+    log.trace("Getting annotations from class: {}", targetClazz.getName());
+    return org.reflections.ReflectionUtils.getAllAnnotations(targetClazz)
+        .stream()
+        .map(Annotation::annotationType)
+        .collect(Collectors.toSet());
+  }
   public static Set<Class<? extends Annotation>> getAnnotationsFromClass(@Nonnull Class<?> targetClazz) {
     log.trace("Getting annotations from class: {}", targetClazz.getName());
     Set<Annotation> result = new HashSet<>();
@@ -96,4 +104,35 @@ public class ReflectionUtils {
       throw new IllegalArgumentException("Error getting value from annotation", e);
     }
   }
+
+  public static Collection<Method> getMethodsAnnotatedBy(Class<?> clazz, Class<? extends Annotation> annotation) {
+    if (clazz == null) {
+      log.error("Class cannot be null");
+      throw new IllegalArgumentException("Class cannot be null");
+    }
+    if (annotation == null) {
+      log.error("Annotation cannot be null");
+      throw new IllegalArgumentException("Annotation cannot be null");
+    }
+
+    log.trace("Getting methods from class: {}", clazz.getName());
+    return Arrays.stream(clazz.getDeclaredMethods())
+        .filter(method -> !method.isSynthetic() && !method.isBridge())
+        .filter(method -> method.isAnnotationPresent(annotation))
+        .toList();
+  }
+
+  public static <T> Optional<T> getValueFromAnnotationOnMethod(Method method, Class<? extends Annotation> annotation, String fieldName,
+      Class<T> type) {
+    log.trace("Getting value from annotation: {} for field: {} in method: {}", annotation.getName(), fieldName, method.getName());
+    return getSingleAnnotationFromMethod(method, annotation)
+        .map(an -> extractValue(an, fieldName))
+        .map(val -> castToType(val, type));
+  }
+
+  public static <T extends Annotation> Optional<T> getSingleAnnotationFromMethod(Method method, Class<T> targetAnnotation) {
+    log.trace("Getting annotation: {} from method: {}", targetAnnotation.getName(), method.getName());
+    return Optional.ofNullable(method.getAnnotation(targetAnnotation));
+  }
+
 }

@@ -1,6 +1,8 @@
 package ua.gorobeos.contextor.context.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static ua.gorobeos.contextor.context.element.ElementDefinition.PROTOTYPE_SCOPE;
 
 import java.io.Serializable;
 import org.junit.jupiter.api.DisplayName;
@@ -8,8 +10,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import ua.gorobeos.contextor.context.annotations.ContextConfig;
 import ua.gorobeos.contextor.context.annotations.Element;
 import ua.gorobeos.contextor.context.annotations.ElementScan;
+import ua.gorobeos.contextor.context.annotations.ExternalElement;
+import ua.gorobeos.contextor.context.annotations.Scope;
 
 class ReflectionUtilsTest {
 
@@ -84,6 +89,81 @@ class ReflectionUtilsTest {
     }
   }
 
+  @Nested
+  @DisplayName("Fetch annotated methods ")
+  class AnnotatedMethods {
+
+    @Test
+    void shouldThrowIllegalArgumentExceptionIfNullClassProvided() {
+      assertThatThrownBy(() -> ReflectionUtils.getMethodsAnnotatedBy(null, ExternalElement.class))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("Class cannot be null");
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentExceptionIfNullAnnotationProvided() {
+      assertThatThrownBy(() -> ReflectionUtils.getMethodsAnnotatedBy(ExternalElement.class, null))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("Annotation cannot be null");
+    }
+
+    @Test
+    void shouldGetMethodsOfClassByAnnotationCorrectly() {
+      var methods = ReflectionUtils.getMethodsAnnotatedBy(ConfigClass.class, ExternalElement.class);
+      assertThat(methods).hasSize(2)
+          .extracting("name")
+          .containsExactlyInAnyOrder("noArgsElement", "argsElement");
+    }
+
+  }
+
+  @ContextConfig
+  static class ConfigClass {
+
+    @ExternalElement
+    public String noArgsElement() {
+      return new String();
+    }
+
+    @ExternalElement
+    public String argsElement(FlatElement flatElement, String arg) {
+      return flatElement.toString() + " " + arg;
+    }
+
+  }
+
+
+  @Nested
+  @DisplayName("Test for methods metadata fetching")
+  class MethodsMetadata {
+
+    @Test
+    void shouldCorrectlyFetchMethodAnnotationData() throws Exception {
+      var targetMethod = MethodClass.class.getDeclaredMethod("methodWithAnnotation", String.class);
+
+      var actualValue = ReflectionUtils.getValueFromAnnotationOnMethod(targetMethod, Scope.class, "value", String.class);
+      assertThat(actualValue)
+          .isPresent()
+          .contains(PROTOTYPE_SCOPE);
+    }
+
+    @Test
+    void shouldReturnEmptyOptionalIfNoAnnotationFound() {
+      var targetMethod = MethodClass.class.getDeclaredMethods()[0];
+
+      var actualValue = ReflectionUtils.getValueFromAnnotationOnMethod(targetMethod, Element.class, "value", String.class);
+      assertThat(actualValue).isEmpty();
+    }
+
+    private static class MethodClass {
+
+      @ExternalElement
+      @Scope(PROTOTYPE_SCOPE)
+      public String methodWithAnnotation(String arg) {
+        return arg;
+      }
+    }
+  }
 
   @Element
   static class FlatElement {

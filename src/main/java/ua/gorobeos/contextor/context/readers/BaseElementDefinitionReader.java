@@ -46,7 +46,7 @@ public abstract class BaseElementDefinitionReader implements ElementDefinitionRe
 
     Collection<DependencyDefinition> dependencyDefinitions = resolveDependencies(initConstructor);
 
-    ElementDefinition elementDefinition = getElementDefinitionContainerWithSpecifics();
+    ElementDefinition elementDefinition = getElementDefinitionContainerWithSpecifics(clazz);
     elementDefinition.setName(elementName);
     elementDefinition.setType(clazz);
     elementDefinition.setInitConstructor(initConstructor);
@@ -122,6 +122,6 @@ public abstract class BaseElementDefinitionReader implements ElementDefinitionRe
     return elementName;
   }
 
-  protected abstract ElementDefinition getElementDefinitionContainerWithSpecifics();
+  protected abstract ElementDefinition getElementDefinitionContainerWithSpecifics(Class<?> clazz);
 }
 

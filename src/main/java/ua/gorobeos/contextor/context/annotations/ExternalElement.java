@@ -6,8 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-@Element
-public @interface ContextConfig {
+@Target(ElementType.METHOD)
+public @interface ExternalElement {
 
 }

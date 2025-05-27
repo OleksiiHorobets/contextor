@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import ua.gorobeos.contextor.context.annotations.ContextConfig;
+import ua.gorobeos.contextor.context.element.ConfigElementDefinition;
 import ua.gorobeos.contextor.context.element.ElementDefinition;
+import ua.gorobeos.contextor.context.readers.impl.ConfigElementDefinitionReader;
 import ua.gorobeos.contextor.context.storage.ElementDefinitionHolder;
 import ua.gorobeos.contextor.context.utils.ReflectionUtils;
 
@@ -21,7 +23,7 @@ public class ElementDefinitionReaderFacadeImpl implements ElementDefinitionReade
   }
 
   Map<DefinitionType, ElementDefinitionReader> elementDefinitionReader = Map.of(
-      DefinitionType.CONFIGURATION, new AnnotatedBaseElementDefinitionReader(), //todo: add ConfigurationElementDefinitionReader
+      DefinitionType.CONFIGURATION, new ConfigElementDefinitionReader(),
       DefinitionType.ELEMENT, new AnnotatedBaseElementDefinitionReader()
   );
   ElementDefinitionHolder elementDefinitionHolder;
@@ -31,6 +33,11 @@ public class ElementDefinitionReaderFacadeImpl implements ElementDefinitionReade
     ElementDefinitionReader definitionReader = checkWhatReaderToUse(clazz);
 
     var elementDefinition = definitionReader.readElementDefinition(clazz);
+
+    if (elementDefinition instanceof ConfigElementDefinition configDef) {
+      configDef.getMethodDefinedElements()
+          .forEach(elementDefinitionHolder::addElementDefinition);
+    }
     elementDefinitionHolder.addElementDefinition(elementDefinition);
   }
 
