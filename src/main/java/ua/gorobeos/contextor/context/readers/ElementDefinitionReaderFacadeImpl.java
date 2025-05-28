@@ -1,5 +1,7 @@
 package ua.gorobeos.contextor.context.readers;
 
+import static ua.gorobeos.contextor.context.element.ElementDefinition.SINGLETON_SCOPE;
+
 import java.util.Collection;
 import java.util.Map;
 import lombok.AccessLevel;
@@ -7,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import ua.gorobeos.contextor.context.annotations.ContextConfig;
+import ua.gorobeos.contextor.context.conditions.ConditionEvaluationUtils;
 import ua.gorobeos.contextor.context.element.ConfigElementDefinition;
 import ua.gorobeos.contextor.context.element.ElementDefinition;
 import ua.gorobeos.contextor.context.readers.impl.ConfigElementDefinitionReader;
@@ -34,11 +37,32 @@ public class ElementDefinitionReaderFacadeImpl implements ElementDefinitionReade
 
     var elementDefinition = definitionReader.readElementDefinition(clazz);
 
-    if (elementDefinition instanceof ConfigElementDefinition configDef) {
-      configDef.getMethodDefinedElements()
-          .forEach(elementDefinitionHolder::addElementDefinition);
+    if (!checkIfElementConditionsArePassingOnlyIfSingleton(elementDefinition)) {
+      return;
     }
+
+    if (elementDefinition instanceof ConfigElementDefinition configDef) {
+        configDef.getMethodDefinedElements()
+            .stream()
+            .filter(this::checkIfElementConditionsArePassingOnlyIfSingleton)
+            .forEach(elementDefinitionHolder::addElementDefinition);
+      }
     elementDefinitionHolder.addElementDefinition(elementDefinition);
+  }
+
+  private boolean checkIfElementConditionsArePassingOnlyIfSingleton(ElementDefinition elementDefinition) {
+    if (!SINGLETON_SCOPE.equals(elementDefinition.getScope())) {
+      log.debug("Element definition '{}' has scope '{}', so skipping conditional checks on definition registration", elementDefinition.getName(), elementDefinition.getScope());
+      return true;
+    }
+
+    var context = ConditionEvaluationUtils.evaluate(elementDefinition.getType());
+    if (!context.isConditionalCheckPassed()) {
+      log.warn("Conditional check failed for element: {}. Scope is 'Singleton', so skipping saving element definition", elementDefinition.getName());
+      log.warn("Conditional check results: {}", context.getConditionalCheckResults());
+      return false;
+    }
+    return true;
   }
 
   private ElementDefinitionReader checkWhatReaderToUse(Class<?> clazz) {

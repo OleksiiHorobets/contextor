@@ -1,17 +1,21 @@
 package ua.gorobeos.contextor.context.storage;
 
+import static ua.gorobeos.contextor.context.element.ElementDefinition.PROTOTYPE_SCOPE;
 import static ua.gorobeos.contextor.context.element.ElementDefinition.SINGLETON_SCOPE;
 
 import ch.qos.logback.core.util.StringUtil;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.swing.text.html.Option;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import ua.gorobeos.contextor.context.conditions.ConditionEvaluationUtils;
 import ua.gorobeos.contextor.context.dependencies.DependencyResolver;
 import ua.gorobeos.contextor.context.dependencies.SimpleDependencyResolver;
 import ua.gorobeos.contextor.context.element.ElementDefinition;
@@ -57,19 +61,20 @@ public class ContextHolder {
   }
 
 
-  public Object getElement(String name) {
+  public Optional<Object> getElement(String name) {
     if (nameToElementMap.containsKey(name)) {
-      return nameToElementMap.get(name);
+      return Optional.ofNullable(nameToElementMap.get(name));
     }
-    ElementDefinition elementDefinition = elementDefinitionHolder.getElementDefinition(name)
-        .orElseThrow(() -> {
-          log.error("Element definition for name '{}' not found", name);
-          return new NoSuchElementException("Element definition for name '%s' not found".formatted(name));
-        });
+    var elementDefinitionOptional = elementDefinitionHolder.getElementDefinition(name);
+    if (elementDefinitionOptional.isEmpty()) {
+      log.error("Element definition for name '{}' not found", name);
+      return Optional.empty();
+    }
+    var elementDefinition = elementDefinitionOptional.get();
 
     log.debug("Creating new instance for element definition: {}", elementDefinition);
 
-    return createElementInstance(elementDefinition);
+    return Optional.ofNullable(createElementInstance(elementDefinition));
   }
 
 
@@ -79,6 +84,7 @@ public class ContextHolder {
         .map(dependencyResolver::retrieveDependency)
         .map(ElementDefinition::getName)
         .map(this::getElement)
+        .flatMap(Optional::stream)
         .toArray();
 
     log.debug("Creating instance of element: {} with dependencies: {}", elementDefinition.getName(), dependenciesDefinitions);
@@ -86,7 +92,11 @@ public class ContextHolder {
     Object createdElement;
     if (elementDefinition instanceof MethodDefinedElementDefinition methodDefined) {
       log.debug("Creating element using method defined element definition: {}", methodDefined);
-      var configElement = getElement(StringUtil.lowercaseFirstLetter(methodDefined.getConfigClass().getSimpleName()));
+      var configElement = getElement(StringUtil.lowercaseFirstLetter(methodDefined.getConfigClass().getSimpleName()))
+          .orElseThrow(() -> new NoSuchElementException(
+              "Config element '%s' not found for method defined element '%s'".formatted(
+                  StringUtil.lowercaseFirstLetter(methodDefined.getConfigClass().getSimpleName()),
+                  methodDefined.getName())));
       try {
         log.debug("------Invoking init method '{}' on config element: {}", methodDefined.getInitMethod().getName(), configElement);
         createdElement = methodDefined.getInitMethod().invoke(configElement, dependenciesDefinitions);
@@ -96,6 +106,7 @@ public class ContextHolder {
                 methodDefined.getInitMethod().getName(), configElement, dependenciesDefinitions), e);
       }
     } else {
+      checkConditionsIfPrototype(elementDefinition);
       createdElement = initElementByConstructor(elementDefinition, dependenciesDefinitions);
     }
 
@@ -104,8 +115,25 @@ public class ContextHolder {
       log.debug("Registering element '{}' in context holder", elementDefinition.getName());
       nameToElementMap.put(elementDefinition.getName(), createdElement);
       return createdElement;
+    } else {
+      log.debug("Element '{}' is prototype, not registering in context holder", elementDefinition.getName());
     }
     return createdElement;
+  }
+
+  private void checkConditionsIfPrototype(ElementDefinition elementDefinition) {
+    if (!PROTOTYPE_SCOPE.equals(elementDefinition.getScope())) {
+      return;
+    }
+
+    var evaluationResult = ConditionEvaluationUtils.evaluate(elementDefinition.getType());
+    if (!evaluationResult.isConditionalCheckPassed()) {
+      log.warn("Conditional check failed for element: {}", elementDefinition.getName());
+      log.warn("Failed evaluation list: {}", evaluationResult.getConditionalCheckResults());
+      throw new ElementCreationException(
+          "Conditional check failed for element '%s' with dependencies: %s".formatted(
+              elementDefinition.getName(), elementDefinition.getDependencies()));
+    }
   }
 
   private static Object initElementByConstructor(ElementDefinition elementDefinition, Object[] dependenciesDefinitions) {

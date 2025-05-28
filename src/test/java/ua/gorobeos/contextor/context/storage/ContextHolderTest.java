@@ -2,8 +2,11 @@ package ua.gorobeos.contextor.context.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import ua.gorobeos.contextor.context.annotations.ElementScan;
+import ua.gorobeos.contextor.context.storage.context_full_load.conditional.file.DependentClass;
+import ua.gorobeos.contextor.context.storage.context_full_load.conditional.file.SecondOnFileCondition;
 
 class ContextHolderTest {
 
@@ -13,7 +16,7 @@ class ContextHolderTest {
 
     context.getElementDefinitionHolder().getElementDefinitions();
     var res = context.getElement("aFirst");
-    assertThat(res).isNotNull();
+    assertThat(res).isNotEmpty();
   }
 
   @Test
@@ -25,8 +28,9 @@ class ContextHolderTest {
     var singletonElementSecondCall = context.getElement("noDependencyExternalElement");
 
     assertThat(singletonElementFirstCall)
-        .isNotNull()
-        .isSameAs(singletonElementSecondCall);
+        .isNotEmpty()
+        .get()
+        .isSameAs(singletonElementSecondCall.get());
   }
 
   @Test
@@ -38,10 +42,62 @@ class ContextHolderTest {
     var prototypeElementSecondCall = context.getElement("singleDependencyExternalElement");
 
     assertThat(prototypeElementFirstCall)
-        .isNotNull();
+        .isNotEmpty();
     assertThat(prototypeElementSecondCall)
-        .isNotNull()
+        .isNotEmpty()
+        .get()
         .isNotSameAs(prototypeElementFirstCall);
+  }
+
+  @Nested
+  class FileConditionalTest {
+
+    @Test
+    void shouldLoadContextWithFileCondition() {
+      var context = ContextHolder.initializeContext(FileConditional.class);
+
+      var res = context.getElement("dependentClass");
+      assertThat(res).isNotEmpty()
+          .get()
+          .isInstanceOfSatisfying(DependentClass.class,
+              dependentClass -> assertThat(dependentClass.getFileConditional()).isInstanceOf(SecondOnFileCondition.class));
+    }
+
+  }
+
+  @Nested
+  class SystemTestConditional {
+
+    @Test
+    void shouldLoadContextWithOsCondition() {
+      var context = ContextHolder.initializeContext(OsConditional.class);
+
+      var windowsElement = context.getElement("windowsElement");
+      var linuxElement = context.getElement("linuxElement");
+
+      assertThat(windowsElement).isNotEmpty();
+      assertThat(linuxElement).isEmpty();
+    }
+
+  }
+
+
+  @Nested
+  class WebConditionalTest {
+
+    @Test
+    void shouldLoadContextWithWebCondition() {
+      var context = ContextHolder.initializeContext(WebConditional.class);
+
+      var res = context.getElement("webDependentElement");
+      assertThat(res).isNotEmpty()
+          .get()
+          .isNotNull();
+      assertThat(context.getElement("failedWebDependentElement"))
+          .isEmpty();
+    }
+
+
   }
 
   @ElementScan(
@@ -56,6 +112,27 @@ class ContextHolderTest {
       basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.with_config"
   )
   private static class ContextWithConfigClass {
+
+  }
+
+  @ElementScan(
+      basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.conditional.file"
+  )
+  private static class FileConditional {
+
+  }
+
+  @ElementScan(
+      basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.conditional.os"
+  )
+  private static class OsConditional {
+
+  }
+
+  @ElementScan(
+      basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.conditional.web"
+  )
+  private static class WebConditional {
 
   }
 }
