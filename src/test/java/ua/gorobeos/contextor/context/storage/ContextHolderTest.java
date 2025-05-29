@@ -1,10 +1,12 @@
 package ua.gorobeos.contextor.context.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import ua.gorobeos.contextor.context.annotations.ElementScan;
+import ua.gorobeos.contextor.context.exceptions.CircularDependencyException;
 import ua.gorobeos.contextor.context.storage.context_full_load.conditional.file.DependentClass;
 import ua.gorobeos.contextor.context.storage.context_full_load.conditional.file.SecondOnFileCondition;
 
@@ -97,8 +99,67 @@ class ContextHolderTest {
           .isEmpty();
     }
 
+  }
+
+
+  @Nested
+  class CircularDependenciesTest {
+
+    @Test
+    void shouldThrowExceptionWhenCircularDependencyFoundForPlainClasses() {
+      assertThatThrownBy(() -> ContextHolder.initializeContext(PlainClassCircularDependencyTestMain.class))
+          .isInstanceOf(CircularDependencyException.class);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCircularDependencyFoundForClassesWithInterfaces() {
+      assertThatThrownBy(() -> ContextHolder.initializeContext(OneInterfaceCircularDependencyTestMain.class))
+          .isInstanceOf(CircularDependencyException.class);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenTransitiveCircularDependencyFound() {
+      assertThatThrownBy(() -> ContextHolder.initializeContext(ComplexCircularDependencyThroughMultipleInterfaces.class))
+          .isInstanceOf(CircularDependencyException.class);
+    }
+
+    @Test
+    void shouldThrowExceptionForMultipleDependencies() {
+      assertThatThrownBy(() -> ContextHolder.initializeContext(MultipleDependenciesCircularDependency.class))
+          .isInstanceOf(CircularDependencyException.class);
+    }
+
+
+    @ElementScan(
+        basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.circular_dependency.simple_circ_dependency"
+    )
+    private static class PlainClassCircularDependencyTestMain {
+
+    }
+
+    @ElementScan(
+        basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.circular_dependency.one_interface"
+    )
+    private static class OneInterfaceCircularDependencyTestMain {
+
+    }
+
+    @ElementScan(
+        basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.circular_dependency.complex_circ_dependency"
+    )
+    private static class ComplexCircularDependencyThroughMultipleInterfaces {
+
+    }
+
+    @ElementScan(
+        basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.circular_dependency.multi_dependencies"
+    )
+    private static class MultipleDependenciesCircularDependency {
+
+    }
 
   }
+
 
   @ElementScan(
       basePackages = "ua.gorobeos.contextor.context.storage.context_full_load.lvl_one"

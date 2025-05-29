@@ -4,9 +4,11 @@ import java.lang.reflect.Constructor;
 import java.util.Collection;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import ua.gorobeos.contextor.context.dependencies.DependencyDefinition;
 
 @NoArgsConstructor
+@ToString
 public class AnnotationElementDefinition extends ElementDefinition {
 
   @Builder

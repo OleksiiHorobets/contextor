@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.swing.text.html.Option;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import ua.gorobeos.contextor.context.conditions.ConditionEvaluationUtils;
 import ua.gorobeos.contextor.context.dependencies.DependencyResolver;
 import ua.gorobeos.contextor.context.dependencies.SimpleDependencyResolver;
+import ua.gorobeos.contextor.context.dependencies.checker.DependencyCircularChecker;
+import ua.gorobeos.contextor.context.dependencies.checker.DfsDependencyCircularChecker;
 import ua.gorobeos.contextor.context.element.ElementDefinition;
 import ua.gorobeos.contextor.context.element.MethodDefinedElementDefinition;
 import ua.gorobeos.contextor.context.exceptions.ElementCreationException;
@@ -45,8 +46,13 @@ public class ContextHolder {
     ElementDefinitionHolder elementDefinitionHolder = new DefaultElementDefinitionHolder();
     ElementDefinitionReaderFacade elementDefinitionReaderFacade = new ElementDefinitionReaderFacadeImpl(elementDefinitionHolder);
     DependencyResolver dependencyResolver = new SimpleDependencyResolver(elementDefinitionHolder);
+    DependencyCircularChecker dependencyCircularChecker = new DfsDependencyCircularChecker(dependencyResolver);
 
-    classesFound.forEach(elementDefinitionReaderFacade::addElementDefinition);
+    classesFound.
+        forEach(elementDefinitionReaderFacade::addElementDefinition);
+
+    elementDefinitionHolder.getElementDefinitions()
+        .forEach(dependencyCircularChecker::checkForCircularDependencies);
 
     log.info("Context initialized with {} element definitions", elementDefinitionHolder.getElementDefinitions().size());
 
