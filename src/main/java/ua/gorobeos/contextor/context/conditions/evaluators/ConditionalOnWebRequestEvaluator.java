@@ -54,7 +54,7 @@ public class ConditionalOnWebRequestEvaluator implements ConditionalEvaluator {
       if (httpRequest.statusCode() >= 200 && httpRequest.statusCode() < 300) {
         return context;
       }
-    } catch (IOException | InterruptedException e) {
+    } catch (Exception e) {
       log.error("ConditionalOnWebRequest unexpectedly evaluation failed", e.getMessage(), e);
       context.setConditionalCheckPassed(false);
       context.getConditionalCheckResults().add(

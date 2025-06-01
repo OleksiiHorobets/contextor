@@ -22,17 +22,11 @@ public class ConditionalOnPropertyEvaluator implements ConditionalEvaluator {
       return context;
     }
 
-    var name = getValueFromAnnotation(element, ConditionalOnProperty.class, "name", String.class);
-    var value = getValueFromAnnotation(element, ConditionalOnProperty.class, "value", String.class);
-    if (name.isEmpty() || value.isEmpty()) {
-      log.warn("ConditionalOnProperty annotation is missing 'name' or 'value' attribute in class: {}", element.getName());
-      context.setConditionalCheckPassed(false);
-      context.getConditionalCheckResults().add(
-          String.format("ConditionalOnProperty annotation is missing 'name' or 'value' attribute in class: %s", element.getName()));
-      return context;
-    }
-    var propertyValue = ConfigurationReader.getOrDefault(name.get(), null);
-    if (propertyValue == null || !propertyValue.equals(value.get())) {
+    var name = getValueFromAnnotation(element, ConditionalOnProperty.class, "name", String.class).orElseThrow();
+    var value = getValueFromAnnotation(element, ConditionalOnProperty.class, "value", String.class).orElseThrow();
+
+    var propertyValue = ConfigurationReader.getOrDefault(name, null);
+    if (propertyValue == null || !propertyValue.equals(value)) {
       log.warn("Property '{}' with value '{}' does not exist, {} evaluation failed", name, value,
           ConditionalOnProperty.class.getSimpleName());
       context.setConditionalCheckPassed(false);
