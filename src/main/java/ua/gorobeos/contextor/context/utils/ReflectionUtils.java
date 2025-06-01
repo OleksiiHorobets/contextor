@@ -91,7 +91,6 @@ public class ReflectionUtils {
     try {
       return targetType.cast(o);
     } catch (ClassCastException e) {
-      log.error("Error casting value to type: {}", targetType.getName(), e);
       throw new IllegalArgumentException("Cannot cast value to type: " + targetType.getName(), e);
     }
   }
@@ -100,7 +99,6 @@ public class ReflectionUtils {
     try {
       return annotation.annotationType().getMethod(fieldName).invoke(annotation);
     } catch (Exception e) {
-      log.error("Error getting value from annotation", e);
       throw new IllegalArgumentException("Error getting value from annotation", e);
     }
   }

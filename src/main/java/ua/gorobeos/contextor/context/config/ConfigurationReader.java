@@ -4,8 +4,10 @@ package ua.gorobeos.contextor.context.config;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
+import lombok.experimental.UtilityClass;
 import ua.gorobeos.contextor.context.exceptions.PropertiesLoadException;
 
+@UtilityClass
 public class ConfigurationReader {
 
   private static final String CONFIGURATION_FILE = "application.properties";

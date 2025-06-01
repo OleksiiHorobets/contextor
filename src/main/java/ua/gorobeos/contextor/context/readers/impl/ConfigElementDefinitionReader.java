@@ -3,12 +3,13 @@ package ua.gorobeos.contextor.context.readers.impl;
 
 import static ch.qos.logback.core.util.StringUtil.lowercaseFirstLetter;
 import static ua.gorobeos.contextor.context.element.ElementDefinition.SINGLETON_SCOPE;
+import static ua.gorobeos.contextor.context.utils.ReflectionUtils.*;
+import static ua.gorobeos.contextor.context.utils.ReflectionUtils.getSingleAnnotationFromMethod;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import ua.gorobeos.contextor.context.annotations.ExternalElement;
 import ua.gorobeos.contextor.context.annotations.Primary;
 import ua.gorobeos.contextor.context.annotations.Scope;
@@ -19,14 +20,12 @@ import ua.gorobeos.contextor.context.exceptions.InvalidElementScopeException;
 import ua.gorobeos.contextor.context.readers.BaseElementDefinitionReader;
 import ua.gorobeos.contextor.context.utils.ReflectionUtils;
 
+@Slf4j
 public class ConfigElementDefinitionReader extends BaseElementDefinitionReader {
-
-
-  private static final Logger log = LoggerFactory.getLogger(ConfigElementDefinitionReader.class);
 
   @Override
   protected String resolveScope(Class<?> clazz) {
-    if (ReflectionUtils.isAnnotationPresentFullCheck(clazz, Scope.class)) {
+    if (isAnnotationPresentFullCheck(clazz, Scope.class)) {
       throw new InvalidElementScopeException(
           "Config classes are always 'singleton'. Please remove the @Scope annotation from class: " + clazz.getName());
     }
@@ -45,7 +44,7 @@ public class ConfigElementDefinitionReader extends BaseElementDefinitionReader {
 
   private Collection<ElementDefinition> getDefinedElementsFromConfig(Class<?> clazz) {
 
-    return ReflectionUtils.getMethodsAnnotatedBy(clazz, ExternalElement.class).stream().map(this::mapMethodToElementDefinition).map(definition -> {
+    return getMethodsAnnotatedBy(clazz, ExternalElement.class).stream().map(this::mapMethodToElementDefinition).map(definition -> {
       definition.setConfigClass(clazz);
       return definition;
     }).collect(Collectors.toSet());
@@ -54,11 +53,19 @@ public class ConfigElementDefinitionReader extends BaseElementDefinitionReader {
   private MethodDefinedElementDefinition mapMethodToElementDefinition(Method method) {
     log.debug("Mapping method {} to ElementDefinition", method.getName());
     var elementDefinition = MethodDefinedElementDefinition.builder().name(lowercaseFirstLetter(method.getName()))
-        .isPrimary(ReflectionUtils.getSingleAnnotationFromMethod(method, Primary.class).isPresent()).type(method.getReturnType())
-        .scope(ReflectionUtils.getValueFromAnnotationOnMethod(method, Scope.class, "value", String.class).orElseGet(() -> {
+        .isPrimary(getSingleAnnotationFromMethod(method, Primary.class).isPresent()).type(method.getReturnType())
+        .scope(getValueFromAnnotationOnMethod(method, Scope.class, "value", String.class)
+            .map(scope -> {
+              if (!VALID_SCOPES.contains(scope)) {
+                throw new IllegalArgumentException(
+                    "Invalid scope name provided: " + scope + " for method: " + method.getName());
+              }
+              return scope;
+            })
+            .orElseGet(() -> {
           log.info("No scope defined for method: {}. Defaulting to singleton scope.", method.getName());
           return SINGLETON_SCOPE;
-        })).dependencies(ReflectionUtils.mapParametersToDependencyDefinitions(method.getParameters())).initMethod(method).build();
+        })).dependencies(mapParametersToDependencyDefinitions(method.getParameters())).initMethod(method).build();
 
     log.debug("ElementDefinition created for method {}: {}", method.getName(), elementDefinition);
     return elementDefinition;

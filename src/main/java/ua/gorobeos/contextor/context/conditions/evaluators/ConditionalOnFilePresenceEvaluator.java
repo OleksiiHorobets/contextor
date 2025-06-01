@@ -15,17 +15,20 @@ public class ConditionalOnFilePresenceEvaluator implements ConditionalEvaluator 
 
   @Override
   public ConditionalContext evaluate(ConditionalContext context) {
+    // Беремо клас елемента з контексту
     Class<?> element = context.getElementClass();
     if (element == null) {
       return context;
     }
+    // Перевіряємо, чи є у класу анотація, яка нас цікавить ConditionalOnFilePresence
     if (!isAnnotationPresentFullCheck(element, ConditionalOnFilePresence.class)) {
       return context;
     }
-
+    // Отримуємо масив шляхів до файлів наявність яких треба перевірити
     var filePaths = getValueFromAnnotation(element, ConditionalOnFilePresence.class, "filePaths", String[].class)
-        .orElseGet(()-> new String[0]);
+        .orElseGet(() -> new String[0]);
 
+    // Перевіряємо кожен шлях до файлу
     for (String filePath : filePaths) {
       var res = getClass().getClassLoader().getResource(filePath);
       if (res == null && !Files.exists(Path.of(filePath))) {

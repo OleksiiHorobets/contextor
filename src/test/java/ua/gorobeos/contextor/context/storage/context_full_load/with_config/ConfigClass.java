@@ -12,7 +12,7 @@ public class ConfigClass {
   private final BookRepository bookRepository;
 
   @ExternalElement
-  @Scope("Primary")
+  @Scope("singleton")
   public String noDependencyExternalElement() {
     System.out.println("--------- creating again external element with no dependencies");
     return "External Element";
